@@ -3,17 +3,19 @@ package com.limra.googlephotosbackup;
 import android.app.Activity;
 import android.content.ContentValues;
 import android.content.Intent;
-import android.database.Cursor;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
@@ -51,7 +53,26 @@ public class MainActivity extends Activity {
         getWindow().setStatusBarColor(Color.rgb(247,247,252));
         getWindow().setNavigationBarColor(Color.WHITE);
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
-        buildUi();
+        showSplash();
+    }
+
+    private void showSplash() {
+        LinearLayout splash = new LinearLayout(this);
+        splash.setOrientation(LinearLayout.VERTICAL);
+        splash.setGravity(Gravity.CENTER);
+        splash.setBackgroundColor(Color.rgb(91,92,226));
+        ImageView logo = new ImageView(this);
+        logo.setImageResource(com.limra.googlephotosbackup.R.drawable.ic_splash_logo);
+        splash.addView(logo, new LinearLayout.LayoutParams(dp(112), dp(112)));
+        TextView title = text("Photos Backup", 25, Color.WHITE, true);
+        title.setGravity(Gravity.CENTER);
+        title.setPadding(0, dp(18), 0, dp(4));
+        splash.addView(title);
+        TextView tagline = text("Keep your memories close", 14, Color.rgb(232,232,255), false);
+        tagline.setGravity(Gravity.CENTER);
+        splash.addView(tagline);
+        setContentView(splash);
+        new Handler(Looper.getMainLooper()).postDelayed(this::buildUi, 1100);
     }
 
     private int dp(float n) { return (int)(n * getResources().getDisplayMetrics().density + 0.5f); }
@@ -94,8 +115,6 @@ public class MainActivity extends Activity {
         importButton = button("2   Import Takeout ZIP", true);
         importButton.setOnClickListener(v -> chooseZip()); card.addView(importButton, full());
         gap(card, 10);
-        Button folder = button("Choose extracted Takeout folder", false);
-        folder.setOnClickListener(v -> chooseFolder()); card.addView(folder, full());
         root.addView(card); gap(root, 18);
 
         LinearLayout progressCard = card();
@@ -133,25 +152,18 @@ public class MainActivity extends Activity {
     private void chooseZip() {
         if (importing) return;
         Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-        i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("application/zip");
+        i.addCategory(Intent.CATEGORY_OPENABLE); i.setType("*/*");
+        i.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/zip", "application/x-zip-compressed", "application/octet-stream"});
         i.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, false);
         startActivityForResult(i, PICK_ZIP);
-    }
-    private void chooseFolder() {
-        if (importing) return;
-        Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-        startActivityForResult(i, PICK_FOLDER);
     }
     @Override protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode,resultCode,data);
         if (resultCode != RESULT_OK || data == null || data.getData() == null) return;
         Uri uri = data.getData();
         if (requestCode == PICK_ZIP) {
-            getContentResolver().takePersistableUriPermission(uri, data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION));
+            try { getContentResolver().takePersistableUriPermission(uri, data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION)); } catch (Exception ignored) {}
             new Thread(() -> importZip(uri)).start();
-        } else if (requestCode == PICK_FOLDER) {
-            status.setText("Folder selected. Folder import is not yet available in this starter build; please select the Takeout ZIP archive.");
-            Toast.makeText(this,"Please select the Takeout ZIP archive for now.",Toast.LENGTH_LONG).show();
         }
     }
 
