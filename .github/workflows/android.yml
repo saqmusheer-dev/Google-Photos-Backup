@@ -8,6 +8,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -16,12 +19,17 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Set up Android SDK tools
-        uses: android-actions/setup-android@v3
+      - name: Verify runner Android SDK
+        run: |
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          ls -la "$ANDROID_HOME"
+          find "$ANDROID_HOME" -maxdepth 3 -name sdkmanager -type f
       - name: Install Android SDK packages
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          SDKMANAGER="$(find "$ANDROID_HOME" -name sdkmanager -type f | head -n 1)"
+          test -n "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
       - name: Install Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
