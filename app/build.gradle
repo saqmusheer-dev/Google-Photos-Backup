@@ -1,0 +1,13 @@
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'com.limra.googlephotosbackup'
+    compileSdk 35
+    defaultConfig {
+        applicationId 'com.limra.googlephotosbackup'
+        minSdk 26
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+    }
+}
